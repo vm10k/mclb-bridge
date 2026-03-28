@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCLB Bridge</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;700&family=Merriweather:wght@700;900&display=swap');
+        :root { --bg-body: #FFFFFF; --text-main: #000000; --border: 2px solid #000; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; }
+        .logo-container { display: flex; align-items: center; gap: 15px; }
+        .top-logo { height: 40px; width: auto; }
+        .logo-text { font-family: 'Merriweather', serif; font-weight: 900; font-size: 24px; letter-spacing: 1px; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .chain-badge { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid #000; padding: 8px 16px; font-family: 'Courier Prime', monospace; font-weight: 700; }
+        .connect-btn { background: #fff; color: #000; padding: 10px 24px; border: 2px solid #000; font-family: 'Courier Prime', monospace; font-weight: 700; cursor: pointer; transition: 0.2s; height: 100%; display: flex; align-items: center;}
+        .connect-btn:hover { background: #000; color: #fff; }
+        .main-container { width: 100%; max-width: 600px; margin: 40px auto; padding: 20px; position: relative; }
+		.header-logo {
+    height: 40px; 
+    width: auto;
+}
+        .trade-box { background: #fff; border: 2px solid #000; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; height: 140px; position: relative; margin-bottom: 0; }
+        .trade-header-small { display:flex; justify-content:space-between; font-family: 'Courier Prime', monospace; font-size: 14px; margin-bottom: 10px; color:#555; }
+        .trade-content { display: flex; justify-content: space-between; align-items: center; height: 100%; }
+        .token-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .token-icon { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #000; background: #eee; object-fit: cover; }
+        .token-symbol { font-family: 'Merriweather', serif; font-weight: 900; font-size: 20px; }
+        .token-name { font-family: 'Courier Prime', monospace; font-size: 11px; color: #555; }
+        .input-group { text-align: right; width: 50%; }
+        .input-amount { width: 100%; border: none; background: transparent; font-family: 'Merriweather', serif; font-size: 24px; font-weight: 900; text-align: right; outline: none; padding: 0; }
+        .arrow-wrapper { position: relative; height: 20px; margin-bottom: 0; z-index: 10; }
+        .swap-arrow-btn { width: 36px; height: 36px; background: #fff; border: 1px solid #000; border-radius: 50%; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .action-btn { width: 100%; background: #fff; color: #000; border: 2px solid #000; padding: 16px; font-family: 'Merriweather', serif; font-weight: 900; font-size: 16px; text-transform: uppercase; cursor: pointer; transition: 0.2s; margin-top: 20px; }
+        .action-btn:hover { background: #000; color: #fff; }
+        .action-btn:disabled { background: #eee; color: #aaa; cursor: not-allowed; border-color: #aaa; }
+        .info-card { border: 2px solid #000; background: #eee; padding: 15px; margin-top: 20px; }
+        .fee-row { display: flex; justify-content: space-between; margin-top: 5px; font-family: 'Courier Prime'; font-size: 12px; color: #555; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #fff; border: 2px solid #000; width: 400px; height: 500px; display: flex; flex-direction: column; box-shadow: 10px 10px 0px rgba(0,0,0,0.1); }
+        .modal-header { padding: 15px; border-bottom: 2px solid #000; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-family: 'Merriweather', serif; font-weight: 900; }
+        .close-btn { cursor: pointer; font-family: 'Courier Prime', monospace; font-weight: bold; font-size: 20px; }
+        .modal-search { padding: 10px; border-bottom: 1px solid #000; }
+        .search-input { width: 100%; padding: 10px; border: 1px solid #ccc; font-family: 'Courier Prime', monospace; outline: none; }
+        .token-list { overflow-y: auto; flex: 1; }
+        .modal-token-row { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .modal-token-row:hover { background: #000; color: #fff; }
+		/* Black & White Status Card */
+#statusCard {
+    display: none;
+    border: 2px solid #000;
+    background: #fff;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+/* Custom Notification Popup */
+.notif-box {
+    background: #fff;
+    border: 2px solid #000;
+    width: 350px;
+    padding: 20px;
+    box-shadow: 10px 10px 0px rgba(0,0,0,1); 
+    text-align: center;
+}
+
+.notif-title {
+    font-family: 'Merriweather', serif;
+    font-weight: 900;
+    font-size: 20px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.notif-text {
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+    </style>
+</head>
+<body>
+    <div class="header-row">
+        <div class="logo-container">
+		 <img src="https://coin-images.coingecko.com/coins/images/55426/large/MCLB.jpg?1745946696" class="header-logo" alt="fBOMB Logo">
+            <span class="logo-text">MCLB Bridge</span>
+        </div>
+        <div class="header-right">
+            <div class="chain-badge">
+                <img id="currentChainIcon" src="" style="width:20px;height:20px;border-radius:50%; display:none;">
+                <span id="currentChainName">NOT CONNECTED</span>
+            </div>
+            <button id="connectWallet" class="connect-btn">CONNECT WALLET</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="swap-title" style="font-family: 'Merriweather', serif; font-weight: 900; font-size: 24px; margin-bottom: 20px; text-align:center;">Change the network from your wallet</div>
+        <div class="swap-title" style="font-family: 'Merriweather', serif; font-weight: 900; font-size: 24px; margin-bottom: 20px; text-align:center;">Bridge fee is 2%</div>
+        <div class="trade-box" style="border-bottom:none;">
+            <div class="trade-header-small">
+                <span>From Network</span>
+                <span id="bridgeSrcBalance">Balance: 0.00</span>
+            </div>
+            <div class="trade-content">
+                <div class="token-info" onclick="openModal('src')">
+                    <img id="srcChainIcon" class="token-icon" src="">
+                    <div>
+                        <div class="token-symbol" id="srcChainName">Select</div>
+                        <div class="token-name">Source Chain</div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="number" id="bridgeAmt" class="input-amount" placeholder="0" oninput="estimateBridgeFees()">
+                    <div style="text-align: right; margin-top: 4px;">
+                        <select id="tokenSelect" onchange="changeToken()" style="font-family: 'Courier Prime', monospace; font-size: 14px; font-weight: bold; border: 1px solid #000; padding: 2px 5px; background: #fff; cursor: pointer; outline: none;">
+                            <option value="fbomb">fBOMB</option>
+                            <option value="fmulti">fMULTI</option>
+                            <option value="fiery">FIERY</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow-wrapper">
+            <div class="swap-arrow-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+            </div>
+        </div>
+
+        <div class="trade-box" style="border-top:none;">
+            <div class="trade-header-small">
+                <span>To Network</span>
+                <span id="dstTokenSymbol">fBOMB</span>
+            </div>
+            <div class="trade-content">
+                <div class="token-info" onclick="openModal('dst')">
+                    <img id="dstChainIcon" class="token-icon" src="">
+                    <div>
+                        <div class="token-symbol" id="dstChainName">Select</div>
+                        <div class="token-name">Destination Chain</div>
+                    </div>
+                </div>
+                 <div class="input-group">
+                    <input type="text" id="bridgeReceiveAmt" class="input-amount" placeholder="0" readonly style="opacity:0.7">
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="fee-row">
+                <span>Estimated Fee (Native):</span>
+                <span id="bridgeFeeDisplay">---</span>
+            </div>
+            <div class="fee-row">
+                <span>LayerZero Route:</span>
+                <span id="lzRouteDisplay">---</span>
+            </div>
+        </div>
+
+        <button id="bridgeActionBtn" class="action-btn" onclick="executeBridge()" disabled>SELECT CHAINS</button>
+
+        <div id="statusCard">
+            <div style="font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; font-family: 'Merriweather'; border-bottom: 1px solid #000; padding-bottom: 5px;">
+                <span>BRIDGE STATUS</span>
+                <span id="lzStatusLabel" style="font-family: 'Courier Prime';">[WAITING]</span>
+            </div>
+            <div id="statusDetails" style="font-size: 12px; font-family: 'Courier Prime';">
+                Waiting for source confirmation...
+            </div>
+            <button id="retryBtn" class="action-btn" style="display:none; margin-top: 10px; font-size: 14px; padding: 10px;" onclick="triggerManualRetry()">
+                RETRY STUCK PAYLOAD
+            </button>
+        </div>
+    </div> 
+
+    <div id="tokenModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">SELECT CHAIN</span>
+                <span class="close-btn" onclick="closeModal()">X</span>
+            </div>
+            <div class="modal-search">
+                <input type="text" class="search-input" placeholder="Search..." oninput="searchModal(this.value)">
+            </div>
+            <div id="modalList" class="token-list"></div>
+        </div>
+    </div>
+
+    <div id="notifModal" class="modal-overlay">
+        <div class="notif-box">
+            <div id="notifTitle" class="notif-title">NOTIFICATION</div>
+            <div id="notifText" class="notif-text">Message goes here.</div>
+            <button class="action-btn" style="margin-top:0;" onclick="closeNotif()">CLOSE</button>
+        </div>
+    </div>
+
+    <script>
+        const FMULTI = "0x39838b880ba948c49aab7253f61ce1e00c30c014";
+        const FIERY = "0xF97d438BC03aD0F75B83ce5714c9619880B305bc";
+
+        const CHAINS = {
+            base: { id: 8453, lzId: 184, name: "Base", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/base.svg", rpc: "https://mainnet.base.org", fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
+            optimism: { id: 10, lzId: 111, name: "Optimism", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/optimism.svg", rpc: "https://mainnet.optimism.io", fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", fmulti: FMULTI, fiery: FIERY, endpoint: "0x3c2269811836af69497E5F486A85D7316753cf62" },
+            avalanche: { id: 43114, lzId: 106, name: "Avalanche", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/avalanche.svg", rpc: "https://avalanche-c-chain-rpc.publicnode.com", fbomb: "0x5C09A9cE08C4B332Ef1CC5f7caDB1158C32767Ce", fmulti: FMULTI, fiery: FIERY, endpoint: "0x3c2269811836af69497E5F486A85D7316753cf62" },
+            bnb: { id: 56, lzId: 102, name: "BNB Chain", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/bsc.svg", rpc: "https://bsc-dataseed.binance.org", fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", fmulti: FMULTI, fiery: FIERY, endpoint: "0x3c2269811836af69497E5F486A85D7316753cf62" },
+            linea: { id: 59144, lzId: 183, name: "Linea", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/linea.svg", rpc: "https://rpc.linea.build", fbomb: "0x8cf881799E3B5ab24271A9B66b6Ca2b0e575B1ef", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
+            ethereum: { id: 1, lzId: 101, name: "Ethereum", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/ethereum.svg", rpc: "https://eth.llamarpc.com", fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", fmulti: FMULTI, fiery: FIERY, endpoint: "0x66A71Dcef29A0fFBDBE3c6a460a3B5BC225Cd675" },
+            plasma: { id: 9745, lzId: 383, name: "Plasma", logo: "https://placehold.co/40x40/black/white?text=PL", rpc: "https://rpc.plasma.to", fbomb: "0x19d0480022eaf3e4E25472efEA9eeba372c9F35f", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
+            arbitrum: { id: 42161, lzId: 110, name: "Arbitrum", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/arbitrum.svg", rpc: "https://arbitrum.llamarpc.com", fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", fmulti: FMULTI, fiery: FIERY, endpoint: "0x3c2269811836af69497E5F486A85D7316753cf62" },
+            abstract: { id: 2741, lzId: 324, name: "Abstract", logo: "https://placehold.co/40x40/black/white?text=AB", rpc: "https://api.mainnet.abs.xyz", fbomb: "0x19d0480022eaf3e4E25472efEA9eeba372c9F35f", fmulti: FMULTI, fiery: FIERY, endpoint: "0x042b8289c97896529Ec2FE49ba1A8B9C956A86cC" },
+            sonic: { id: 146, lzId: 112, name: "Sonic", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/sonic.svg", rpc: "https://rpc.soniclabs.com", fbomb: "0xedf8b632b537d5993adb5e2e15882cd791c284cb", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
+            bera: { id: 80094, lzId: 362, name: "Berachain", logo: "https://placehold.co/40x40/black/white?text=BE", rpc: "https://rpc.berachain.com", fbomb: "0xDf486980Df72446a5efF76263eFb2Fa9391Be136", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" }
+        };
+
+        const ERC20_ABI =["function balanceOf(address) view returns (uint256)", "function approve(address, uint256) returns (bool)", "function allowance(address, address) view returns (uint256)"];
+        
+        const OFT_ABI =[
+            "function traverseChains(uint16, uint256) payable",
+            "function sendFrom(address _from, uint16 _dstChainId, bytes calldata _toAddress, uint _amount, address payable _refundAddress, address _zroPaymentAddress, bytes calldata _adapterParams) payable",
+            "function sendFrom(address _from, uint16 _dstChainId, bytes32 _toAddress, uint _amount, address payable _refundAddress, address _zroPaymentAddress, bytes calldata _adapterParams) payable",
+            "function sendFrom(address _from, uint16 _dstChainId, bytes32 _toAddress, uint _amount, uint _minAmount, tuple(address refundAddress, address zroPaymentAddress, bytes adapterParams) _callParams) payable"
+        ];
+
+        const LZ_ENDPOINT_ABI =[
+            "function estimateFees(uint16, address, bytes, bool, bytes) view returns (uint256, uint256)",
+            "function retryPayload(uint16 _srcChainId, bytes _srcAddress, bytes _payload) external",
+            "function hasStoredPayload(uint16 _srcChainId, bytes _srcAddress) view returns (bool)"
+        ];
+        
+        let provider, signer, userAddress;
+        let bridgeSrcChain = CHAINS.base;
+        let bridgeDstChain = CHAINS.optimism;
+        let bridgeFeeWei = BigInt(0);
+        let activeModalSide = '';
+        let currentToken = 'fbomb';
+
+        async function init() {
+            updateBridgeUI();
+            document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        }
+
+        function changeToken() {
+            currentToken = document.getElementById('tokenSelect').value;
+            const selectEl = document.getElementById('tokenSelect');
+            const tokenText = selectEl.options[selectEl.selectedIndex].text;
+            document.getElementById('dstTokenSymbol').innerText = tokenText;
+            updateBridgeUI();
+        }
+
+        let currentTxHash = null;
+        let retryPayloadData = null; 
+
+        async function monitorBridge(txHash) {
+            currentTxHash = txHash;
+            const statusCard = document.getElementById('statusCard');
+            const statusDetails = document.getElementById('statusDetails');
+            const statusLabel = document.getElementById('lzStatusLabel');
+            const retryBtn = document.getElementById('retryBtn');
+
+            statusCard.style.display = 'block';
+            retryBtn.style.display = 'none';
+            statusLabel.innerText = "IN FLIGHT";
+            statusCard.style.background = "#fff"; 
+
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`https://scan.layerzero-api.com/v1/messages/tx/${txHash}`);
+                    const json = await response.json();
+
+                    if (json.data && json.data.length > 0) {
+                        const msg = json.data[0];
+                        const statusText = (msg.status && msg.status.name) ? msg.status.name : msg.status;
+                        
+                        statusLabel.innerText = statusText.toUpperCase();
+
+                        if (statusText === "DELIVERED") {
+                            statusLabel.innerText = "COMPLETED";
+                            statusDetails.innerText = "Success! Tokens arrived on " + bridgeDstChain.name;
+                            showNotif("BRIDGE SUCCESS", "Tokens have successfully arrived on " + bridgeDstChain.name);
+                            clearInterval(interval);
+                            fetchBalances();
+                        } 
+                        else if (statusText === "PAYLOAD_STORED" || statusText === "FAILED") {
+                            statusLabel.innerText = "STUCK";
+                            statusDetails.innerText = "Message stuck. Manual retry required.";
+                            retryPayloadData = msg.source.tx.payload; 
+                            retryBtn.style.display = 'block'; 
+                            showNotif("ATTENTION", "Your transaction is stuck. Use the RETRY button to release tokens.");
+                            clearInterval(interval);
+                        }
+                    }
+                } catch (e) {
+                    console.log("Polling LZ...");
+                }
+            }, 15000);
+        }
+
+        async function triggerManualRetry() {
+            if (!retryPayloadData) return;
+            const btn = document.getElementById('retryBtn');
+            
+            try {
+                btn.disabled = true;
+                btn.innerText = "SWITCHING TO DESTINATION...";
+
+                await switchNetwork(bridgeDstChain.id);
+                
+                const path = ethers.solidityPacked(["address", "address"], 
+                    [bridgeSrcChain[currentToken], bridgeDstChain[currentToken]]
+                );
+
+                const endpoint = new ethers.Contract(bridgeDstChain.endpoint, LZ_ENDPOINT_ABI, signer);
+                
+                btn.innerText = "SENDING RETRY...";
+                const tx = await endpoint.retryPayload(
+                    bridgeSrcChain.lzId, 
+                    path, 
+                    retryPayloadData
+                );
+
+                await tx.wait();
+                alert("Retry successful! Tokens released.");
+                document.getElementById('statusCard').style.display = 'none';
+            } catch (e) {
+                showNotif("RETRY FAILED", e.message);
+                btn.disabled = false;
+            }
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) return alert("Install Wallet");
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAddress = accounts[0];
+                signer = await provider.getSigner();
+                document.getElementById('connectWallet').innerText = userAddress.substring(0,6) + '...';
+                
+                const net = await provider.getNetwork();
+                handleChainChanged(Number(net.chainId));
+                window.ethereum.on('chainChanged', (chainId) => handleChainChanged(Number(chainId)));
+                window.ethereum.on('accountsChanged', (accs) => {
+                    if(accs.length) { userAddress = accs[0]; document.getElementById('connectWallet').innerText = userAddress.substring(0,6) + '...'; fetchBalances(); }
+                    else { userAddress = null; document.getElementById('connectWallet').innerText = "CONNECT"; }
+                });
+                fetchBalances();
+            } catch(e) { console.error(e); }
+        }
+
+        async function handleChainChanged(chainId) {
+            if (window.ethereum) {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+            }
+
+            const chainKey = Object.keys(CHAINS).find(k => CHAINS[k].id === chainId);
+            if(chainKey) {
+                const c = CHAINS[chainKey];
+                document.getElementById('currentChainName').innerText = c.name;
+                document.getElementById('currentChainIcon').src = c.logo;
+                document.getElementById('currentChainIcon').style.display = 'block';
+                if(bridgeSrcChain.id !== chainId) { 
+                    bridgeSrcChain = c; 
+                    updateBridgeUI(); 
+                }
+            } else {
+                document.getElementById('currentChainName').innerText = "Wrong Net";
+            }
+        }
+
+        async function switchNetwork(chainId) {
+            const hexChainId = "0x" + chainId.toString(16);
+            try {
+                await window.ethereum.request({ 
+                    method: 'wallet_switchEthereumChain', 
+                    params:[{ chainId: hexChainId }] 
+                });
+                
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                
+            } catch (error) { 
+                if (error.code === 4902) {
+                    const chainKey = Object.keys(CHAINS).find(k => CHAINS[k].id === chainId);
+                    const chainData = CHAINS[chainKey];
+                    
+                    if (chainData) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params:[{
+                                    chainId: hexChainId,
+                                    chainName: chainData.name,
+                                    rpcUrls: [chainData.rpc],
+                                    nativeCurrency: {
+                                        name: "Native Token",
+                                        symbol: "ETH", 
+                                        decimals: 18
+                                    }
+                                }]
+                            });
+                            
+                            provider = new ethers.BrowserProvider(window.ethereum);
+                            signer = await provider.getSigner();
+                        } catch (addError) {
+                            console.error("Failed to add network:", addError);
+                        }
+                    }
+                } else {
+                    console.error("Failed to switch network:", error); 
+                }
+            }
+        }
+
+        async function fetchBalances() {
+            if (!userAddress || !bridgeSrcChain) return;
+            
+            try {
+                let currentProvider = provider;
+                const net = await provider.getNetwork();
+                
+                if (Number(net.chainId) !== bridgeSrcChain.id) {
+                    currentProvider = new ethers.JsonRpcProvider(bridgeSrcChain.rpc);
+                }
+
+                const tokenAddr = bridgeSrcChain[currentToken];
+                const contract = new ethers.Contract(tokenAddr, ERC20_ABI, currentProvider);
+                const bal = await contract.balanceOf(userAddress);
+                const formattedBal = parseFloat(ethers.formatUnits(bal, 18)).toFixed(4);
+                
+                document.getElementById('bridgeSrcBalance').innerText = "Bal: " + formattedBal;
+            } catch (e) {
+                console.error("Balance fetch error:", e);
+            }
+        }
+
+        function updateBridgeUI() {
+            document.getElementById('srcChainIcon').src = bridgeSrcChain.logo;
+            document.getElementById('srcChainName').innerText = bridgeSrcChain.name;
+            document.getElementById('dstChainIcon').src = bridgeDstChain.logo;
+            document.getElementById('dstChainName').innerText = bridgeDstChain.name;
+            document.getElementById('lzRouteDisplay').innerText = `ID ${bridgeSrcChain.lzId} -> ID ${bridgeDstChain.lzId}`;
+            estimateBridgeFees();
+            fetchBalances(); 
+        }
+
+        async function estimateBridgeFees() {
+            const amtStr = document.getElementById('bridgeAmt').value;
+            const btn = document.getElementById('bridgeActionBtn');
+            const feeDisp = document.getElementById('bridgeFeeDisplay');
+            
+            if(!amtStr || parseFloat(amtStr) <= 0 || !userAddress) return;
+
+            const v2Endpoints =["0xb6319cc6c8c27a8f5daf0dd3df91ea35c4720dd7", "0x66a71dcef29a0bf96339d53295906b9a9a9a9a9a", "0xb6319cc6c8c27a8f5daf074b728ed948a873a56", "0x042b8289c97896529ec2fe49ba1a8b9c956a86cc"];
+            const isV2 = v2Endpoints.includes(bridgeSrcChain.endpoint.toLowerCase());
+            let adapterParams = isV2 ? ethers.solidityPacked(["uint16", "uint256"],[1, 200000]) : "0x";
+
+            try {
+                btn.innerText = "CALCULATING FEE...";
+                const amount = ethers.parseUnits(amtStr, 18);
+                const payload = ethers.concat([ethers.zeroPadValue(ethers.toBeHex(bridgeDstChain.lzId), 2), ethers.zeroPadValue(ethers.toBeHex(amount), 32), userAddress]);
+                const endpoint = new ethers.Contract(bridgeSrcChain.endpoint, LZ_ENDPOINT_ABI, provider);
+                const tokenAddr = bridgeSrcChain[currentToken];
+                const fees = await endpoint.estimateFees(bridgeDstChain.lzId, tokenAddr, payload, false, adapterParams);
+                bridgeFeeWei = (fees[0] * 150n) / 100n;
+                feeDisp.innerText = parseFloat(ethers.formatEther(bridgeFeeWei)).toFixed(5) + " Native";
+                document.getElementById('bridgeReceiveAmt').value = amtStr; 
+                btn.innerText = "BRIDGE ASSETS";
+                btn.disabled = false;
+            } catch(e) {
+                feeDisp.innerText = "Route Not Supported";
+                btn.innerText = "BRIDGE UNAVAILABLE";
+                btn.disabled = true;
+            }
+        }
+
+        async function executeBridge() {
+            if(!userAddress) return alert("Connect Wallet");
+            const net = await provider.getNetwork();
+            if(Number(net.chainId) !== bridgeSrcChain.id) return switchNetwork(bridgeSrcChain.id);
+
+            const amtStr = document.getElementById('bridgeAmt').value;
+            const amount = ethers.parseUnits(amtStr, 18);
+            const btn = document.getElementById('bridgeActionBtn');
+
+            try {
+                btn.disabled = true;
+                btn.innerText = "CHECKING APPROVAL...";
+                const tokenAddr = bridgeSrcChain[currentToken];
+                const token = new ethers.Contract(tokenAddr,[...ERC20_ABI, ...OFT_ABI], signer);
+                
+                const allowance = await token.allowance(userAddress, tokenAddr);
+                if(allowance < amount) {
+                    const txApp = await token.approve(tokenAddr, ethers.MaxUint256);
+                    await txApp.wait();
+                }
+
+                btn.innerText = "FINDING BRIDGE ROUTE...";
+
+                const v2Endpoints =["0xb6319cc6c8c27a8f5daf0dd3df91ea35c4720dd7", "0x66a71dcef29a0bf96339d53295906b9a9a9a9a9a", "0xb6319cc6c8c27a8f5daf074b728ed948a873a56", "0x042b8289c97896529ec2fe49ba1a8b9c956a86cc"];
+                const isV2 = v2Endpoints.includes(bridgeSrcChain.endpoint.toLowerCase());
+                let adapterParams = isV2 ? ethers.solidityPacked(["uint16", "uint256"],[1, 200000]) : "0x";
+                const toAddressBytes32 = ethers.zeroPadValue(userAddress, 32);
+
+               const tryMethods = async () => {
+                    try {
+                        const func = token.getFunction("traverseChains(uint16,uint256)");
+                        if (func) {
+                            await func.estimateGas(bridgeDstChain.lzId, amount, { value: bridgeFeeWei });
+                            return { method: "traverseChains(uint16,uint256)", args:[bridgeDstChain.lzId, amount] };
+                        }
+                    } catch(e) { console.log("Method 1 skip"); }
+                    
+                    try {
+                        const func = token.getFunction("sendFrom(address,uint16,bytes,uint256,address,address,bytes)");
+                        if (func) {
+                            await func.estimateGas(
+                                userAddress, bridgeDstChain.lzId, userAddress, amount, userAddress, ethers.ZeroAddress, adapterParams, { value: bridgeFeeWei }
+                            );
+                            return { method: "sendFrom(address,uint16,bytes,uint256,address,address,bytes)", args:[userAddress, bridgeDstChain.lzId, userAddress, amount, userAddress, ethers.ZeroAddress, adapterParams] };
+                        }
+                    } catch(e) { console.log("Method 2 skip"); }
+
+                    try {
+                        const func = token.getFunction("sendFrom(address,uint16,bytes32,uint256,address,address,bytes)");
+                        if (func) {
+                            await func.estimateGas(
+                                userAddress, bridgeDstChain.lzId, toAddressBytes32, amount, userAddress, ethers.ZeroAddress, adapterParams, { value: bridgeFeeWei }
+                            );
+                            return { method: "sendFrom(address,uint16,bytes32,uint256,address,address,bytes)", args:[userAddress, bridgeDstChain.lzId, toAddressBytes32, amount, userAddress, ethers.ZeroAddress, adapterParams] };
+                        }
+                    } catch(e) { console.log("Method 3 skip"); }
+
+                    try {
+                        const func = token.getFunction("sendFrom(address,uint16,bytes32,uint256,uint256,(address,address,bytes))");
+                        if (func) {
+                            const minAmount = (amount * 95n) / 100n; 
+
+                            await func.estimateGas(
+                                userAddress, bridgeDstChain.lzId, toAddressBytes32, amount, minAmount,[userAddress, ethers.ZeroAddress, adapterParams], { value: bridgeFeeWei }
+                            );
+                            return { 
+                                method: "sendFrom(address,uint16,bytes32,uint256,uint256,(address,address,bytes))", 
+                                args:[userAddress, bridgeDstChain.lzId, toAddressBytes32, amount, minAmount, [userAddress, ethers.ZeroAddress, adapterParams]] 
+                            };
+                        }
+                    } catch(e) { console.error("OFTWithFee Failed:", e.reason || e); }
+                    
+                    throw new Error("Bridge route simulation failed. Ensure balance exists and gas fees are sufficient.");
+                };
+				
+				
+                const { method, args } = await tryMethods();
+
+                btn.innerText = "CONFIRM IN WALLET...";
+                const tx = await token.getFunction(method)(...args, { value: bridgeFeeWei, gasLimit: 500000 });
+
+                btn.innerText = "WAITING...";
+                await tx.wait();
+                
+                showNotif("TRANSACTION CONFIRMED", "Bridge transaction confirmed on source! Monitoring status..."); 
+                monitorBridge(tx.hash); 
+                btn.innerText = "SUCCESS";
+                fetchBalances();
+            } catch(e) {
+                showNotif("BRIDGE ERROR", e.reason || e.message || "Transaction Failed");
+                btn.disabled = false;
+                btn.innerText = "BRIDGE ASSETS";
+            }
+        }
+
+        function openModal(side) {
+            activeModalSide = side; 
+            document.getElementById('tokenModal').classList.add('active');
+            renderList(Object.values(CHAINS));
+        }
+
+        function closeModal() { document.getElementById('tokenModal').classList.remove('active'); }
+
+        function showNotif(title, text) {
+            document.getElementById('notifTitle').innerText = title;
+            document.getElementById('notifText').innerText = text;
+            document.getElementById('notifModal').classList.add('active');
+        }
+
+        function closeNotif() {
+            document.getElementById('notifModal').classList.remove('active');
+        }
+
+        function renderList(list) {
+            const cont = document.getElementById('modalList');
+            cont.innerHTML = "";
+            list.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'modal-token-row';
+                row.innerHTML = `<img src="${item.logo}" style="width:24px;height:24px;border-radius:50%;"> <div style="font-weight:bold">${item.name}</div>`;
+                row.onclick = async () => {
+                    if(activeModalSide === 'src') {
+                        bridgeSrcChain = item;
+                        if (window.ethereum && userAddress) {
+                            await switchNetwork(item.id);
+                        }
+                    } else {
+                        bridgeDstChain = item;
+                    }
+                    updateBridgeUI();
+                    closeModal();
+                };
+                cont.appendChild(row);
+            });
+        }
+
+        function searchModal(q) {
+            renderList(Object.values(CHAINS).filter(c => c.name.toLowerCase().includes(q.toLowerCase())));
+        }
+
+        init();
+    </script>
+</body>
+</html>
