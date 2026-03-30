@@ -82,16 +82,79 @@
     font-size: 14px;
     margin-bottom: 20px;
 }
+body.dark-mode { --bg-body: #121212; --text-main: #FFFFFF; }
+body.dark-mode .trade-box, body.dark-mode .connect-btn, body.dark-mode .chain-badge, 
+body.dark-mode .action-btn, body.dark-mode .modal-box, body.dark-mode .notif-box, 
+body.dark-mode .swap-arrow-btn, body.dark-mode select { 
+    background: #1e1e1e; color: #FFF; border-color: #FFF; 
+}
+body.dark-mode input { color: #FFF; }
+body.dark-mode .info-card { background: #2a2a2a; border-color: #FFF; color: #FFF; }
+body.dark-mode .fee-row, body.dark-mode .trade-header-small, body.dark-mode .token-name { color: #bbb; }
+body.dark-mode .action-btn:hover, body.dark-mode .connect-btn:hover { background: #FFF; color: #000; }
+body.dark-mode .token-icon { border-color: #FFF; }
+body.dark-mode #statusCard { background: #1e1e1e; color: #fff; border-color: #fff; }
+body.dark-mode #tokenSelect {
+    background: #1e1e1e !important;
+    color: #FFF !important;
+    border-color: #FFF !important;
+}
+body.dark-mode #tokenSelect option {
+    background: #1e1e1e;
+    color: #FFF;
+}
+.theme-toggle-btn {
+    background: var(--bg-body);
+    color: var(--text-main);
+    border: 2px solid var(--text-main);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.theme-toggle-btn:hover {
+    background: var(--text-main);
+    color: var(--bg-body);
+}
+.theme-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
     </style>
 </head>
 <body>
     <div class="header-row">
         <div class="logo-container">
-		 <img src="https://coin-images.coingecko.com/coins/images/55426/large/MCLB.jpg?1745946696" class="header-logo" alt="fBOMB Logo">
+		 <img src="mclb.png" class="header-logo" alt="fBOMB Logo">
             <span class="logo-text">MCLB Bridge</span>
         </div>
         <div class="header-right">
+<button class="theme-toggle-btn" onclick="toggleDarkMode()" title="Toggle Theme">
+    <svg id="moonIcon" viewBox="0 0 24 24">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+    <svg id="sunIcon" style="display: none;" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+</button>
             <div class="chain-badge">
+			
                 <img id="currentChainIcon" src="" style="width:20px;height:20px;border-radius:50%; display:none;">
                 <span id="currentChainName">NOT CONNECTED</span>
             </div>
@@ -104,9 +167,12 @@
         <div class="swap-title" style="font-family: 'Merriweather', serif; font-weight: 900; font-size: 24px; margin-bottom: 20px; text-align:center;">Bridge fee is 2%</div>
         <div class="trade-box" style="border-bottom:none;">
             <div class="trade-header-small">
-                <span>From Network</span>
-                <span id="bridgeSrcBalance">Balance: 0.00</span>
-            </div>
+    <span>From Network</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span id="bridgeSrcBalance">Balance: 0.00</span>
+        <button onclick="setMaxAmount()" style="cursor:pointer; font-family:'Courier Prime', monospace; font-size:11px; padding:2px 6px; background:var(--text-main); color:var(--bg-body); border:1px solid var(--text-main); border-radius:4px; font-weight:bold;">MAX</button>
+    </div>
+</div>
             <div class="trade-content">
                 <div class="token-info" onclick="openModal('src')">
                     <img id="srcChainIcon" class="token-icon" src="">
@@ -129,7 +195,7 @@
         </div>
 
         <div class="arrow-wrapper">
-            <div class="swap-arrow-btn">
+<div class="swap-arrow-btn" onclick="swapChains()" title="Swap Chains">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
             </div>
         </div>
@@ -215,7 +281,18 @@
             plasma: { id: 9745, lzId: 383, name: "Plasma", logo: "https://placehold.co/40x40/black/white?text=PL", rpc: "https://rpc.plasma.to", fbomb: "0x19d0480022eaf3e4E25472efEA9eeba372c9F35f", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
             arbitrum: { id: 42161, lzId: 110, name: "Arbitrum", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/arbitrum.svg", rpc: "https://arbitrum.llamarpc.com", fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", fmulti: FMULTI, fiery: FIERY, endpoint: "0x3c2269811836af69497E5F486A85D7316753cf62" },
             abstract: { id: 2741, lzId: 324, name: "Abstract", logo: "https://placehold.co/40x40/black/white?text=AB", rpc: "https://api.mainnet.abs.xyz", fbomb: "0x19d0480022eaf3e4E25472efEA9eeba372c9F35f", fmulti: FMULTI, fiery: FIERY, endpoint: "0x042b8289c97896529Ec2FE49ba1A8B9C956A86cC" },
-            sonic: { id: 146, lzId: 112, name: "Sonic", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/sonic.svg", rpc: "https://rpc.soniclabs.com", fbomb: "0xedf8b632b537d5993adb5e2e15882cd791c284cb", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
+                        sonic: { id: 146, lzId: 332, name: "Sonic", logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/sonic.svg", rpc: "https://rpc.soniclabs.com", fbomb: "0xedf8b632b537d5993adb5e2e15882cd791c284cb", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" },
+fantom: {
+  id: 250,
+  lzId: 112, 
+  name: "Fantom",
+  logo: "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains/fantom.svg",
+  rpc: "https://rpc2.fantom.network",
+  fbomb: "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979", 
+  fmulti: FMULTI,
+  fiery: FIERY,
+  endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" 
+},
             bera: { id: 80094, lzId: 362, name: "Berachain", logo: "https://placehold.co/40x40/black/white?text=BE", rpc: "https://rpc.berachain.com", fbomb: "0xDf486980Df72446a5efF76263eFb2Fa9391Be136", fmulti: FMULTI, fiery: FIERY, endpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7" }
         };
 
@@ -253,7 +330,19 @@
             document.getElementById('dstTokenSymbol').innerText = tokenText;
             updateBridgeUI();
         }
-
+		async function swapChains() {
+    const temp = bridgeSrcChain;
+    bridgeSrcChain = bridgeDstChain;
+    bridgeDstChain = temp;
+    updateBridgeUI();
+    
+    if (window.ethereum && userAddress) {
+        await switchNetwork(bridgeSrcChain.id);
+    }
+}
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+}
         let currentTxHash = null;
         let retryPayloadData = null; 
 
@@ -440,7 +529,25 @@
                 console.error("Balance fetch error:", e);
             }
         }
-
+async function setMaxAmount() {
+    if (!userAddress || !bridgeSrcChain) return;
+    try {
+        let currentProvider = provider;
+        const net = await provider.getNetwork();
+        if (Number(net.chainId) !== bridgeSrcChain.id) {
+            currentProvider = new ethers.JsonRpcProvider(bridgeSrcChain.rpc);
+        }
+        
+        const tokenAddr = bridgeSrcChain[currentToken];
+        const contract = new ethers.Contract(tokenAddr, ERC20_ABI, currentProvider);
+        const bal = await contract.balanceOf(userAddress);
+        
+        document.getElementById('bridgeAmt').value = ethers.formatUnits(bal, 18);
+        estimateBridgeFees(); 
+    } catch (e) {
+        console.error("MAX fetch error:", e);
+    }
+}
         function updateBridgeUI() {
             document.getElementById('srcChainIcon').src = bridgeSrcChain.logo;
             document.getElementById('srcChainName').innerText = bridgeSrcChain.name;
@@ -581,7 +688,13 @@
             document.getElementById('tokenModal').classList.add('active');
             renderList(Object.values(CHAINS));
         }
-
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    
+    const isDark = document.body.classList.contains('dark-mode');
+    document.getElementById('moonIcon').style.display = isDark ? 'none' : 'block';
+    document.getElementById('sunIcon').style.display = isDark ? 'block' : 'none';
+}
         function closeModal() { document.getElementById('tokenModal').classList.remove('active'); }
 
         function showNotif(title, text) {
