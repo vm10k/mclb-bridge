@@ -128,6 +128,21 @@ body.dark-mode #tokenSelect option {
     stroke-linejoin: round;
     fill: none;
 }
+/* Fix for the Status Tracker in Night Mode */
+body.dark-mode #statusCard {
+    background: #1e1e1e !important;
+    color: #FFF !important;
+    border-color: #FFF !important;
+}
+
+body.dark-mode #statusCard > div:first-child {
+    border-bottom: 1px solid #FFF !important;
+}
+
+body.dark-mode #statusDetails, 
+body.dark-mode #lzStatusLabel {
+    color: #FFF !important;
+}
     </style>
 </head>
 <body>
