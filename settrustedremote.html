@@ -217,7 +217,7 @@
         </div>
         <div id="rolesView" style="display:none;">
             <div class="swap-title" style="font-family: 'Merriweather', serif; font-weight: 900; font-size: 24px; margin-bottom: 20px; text-align:center;">Accept Contract Roles</div>
-            <div class="swap-title" style="font-family: 'Courier Prime', monospace; font-size: 14px; margin-bottom: 20px; text-align:center;">Make sure you are connected to the network where you want to execute the transaction.</div>
+            <div class="swap-title" style="font-family: 'Courier Prime', monospace; font-size: 14px; margin-bottom: 20px; text-align:center;">Make sure you are connected to Robinhood and have it selected as your Source Network.</div>
             
             <div class="trade-box" style="height: auto; gap: 15px; border-bottom: 2px solid #000; text-align: center;">
                 <button id="acceptDevBtn" class="action-btn" style="padding: 12px; margin-top: 0;" onclick="executeRoleAction('acceptDeveloper')">ACCEPT DEVELOPER</button>
@@ -320,12 +320,23 @@
                 btn.disabled = true;
                 btn.innerText = "SENDING TX...";
 
+                const net = await provider.getNetwork();
+                const currentChainId = Number(net.chainId);
+                
+                const chainKey = Object.keys(CHAINS).find(k => CHAINS[k].id === currentChainId);
+                
+                if (!chainKey) {
+                    throw new Error("Wallet is connected to an unsupported network.");
+                }
+                
+                const targetContractAddress = CHAINS[chainKey].fbomb;
+
                 const ROLES_ABI = [
                     "function acceptDeveloper() external",
                     "function acceptOwner() external"
                 ];
                 
-                const contract = new ethers.Contract(bridgeSrcChain.fbomb, ROLES_ABI, signer);
+                const contract = new ethers.Contract(targetContractAddress, ROLES_ABI, signer);
                 
                 let tx;
                 if (roleType === 'acceptDeveloper') {
@@ -337,7 +348,7 @@
                 btn.innerText = "WAITING FOR CONFIRMATION...";
                 await tx.wait();
                 
-                showNotif("SUCCESS", `${roleType} executed successfully!`);
+                showNotif("SUCCESS", `${roleType} executed successfully on ${CHAINS[chainKey].name}!`);
             } catch(e) {
                 console.error(e);
                 showNotif("ERROR", e.reason || e.message);
@@ -346,6 +357,7 @@
             btn.innerText = originalText;
             btn.disabled = false;
         }
+		
 async function setTrustedRemote() {
             if (!userAddress) return alert("Connect Wallet First!");
             
