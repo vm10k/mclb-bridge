@@ -86,6 +86,8 @@
             <button id="bridgeTabBtn" class="tab-btn active" onclick="switchTab('bridge')">Bridge</button>
             <button id="recoveryTabBtn" class="tab-btn" onclick="switchTab('recovery')">Recovery</button>
 			            <button id="adminTabBtn" class="tab-btn" onclick="switchTab('admin')">settrustedremote</button>
+						            <button id="rolesTabBtn" class="tab-btn" onclick="switchTab('roles')">Roles</button>
+
         </div>
 
         <!-- BRIDGE VIEW -->
@@ -213,7 +215,15 @@
                 <button id="setRemoteBtn" class="action-btn" style="margin-top: 15px; padding: 12px;" onclick="setTrustedRemote()">SET TRUSTED REMOTE</button>
             </div>
         </div>
-    
+        <div id="rolesView" style="display:none;">
+            <div class="swap-title" style="font-family: 'Merriweather', serif; font-weight: 900; font-size: 24px; margin-bottom: 20px; text-align:center;">Accept Contract Roles</div>
+            <div class="swap-title" style="font-family: 'Courier Prime', monospace; font-size: 14px; margin-bottom: 20px; text-align:center;">Make sure you are connected to Robinhood and have it selected as your Source Network.</div>
+            
+            <div class="trade-box" style="height: auto; gap: 15px; border-bottom: 2px solid #000; text-align: center;">
+                <button id="acceptDevBtn" class="action-btn" style="padding: 12px; margin-top: 0;" onclick="executeRoleAction('acceptDeveloper')">ACCEPT DEVELOPER</button>
+                <button id="acceptOwnerBtn" class="action-btn" style="padding: 12px; margin-top: 15px;" onclick="executeRoleAction('acceptOwner')">ACCEPT OWNER</button>
+            </div>
+        </div>
     <div id="tokenModal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
@@ -279,10 +289,12 @@
             document.getElementById('bridgeTabBtn').classList.remove('active');
             document.getElementById('recoveryTabBtn').classList.remove('active');
             document.getElementById('adminTabBtn').classList.remove('active');
+            document.getElementById('rolesTabBtn').classList.remove('active'); // Added
             
             document.getElementById('bridgeView').style.display = 'none';
             document.getElementById('recoveryView').style.display = 'none';
             document.getElementById('adminView').style.display = 'none';
+            document.getElementById('rolesView').style.display = 'none'; // Added
 
             if (tab === 'bridge') {
                 document.getElementById('bridgeTabBtn').classList.add('active');
@@ -293,7 +305,46 @@
             } else if (tab === 'admin') {
                 document.getElementById('adminTabBtn').classList.add('active');
                 document.getElementById('adminView').style.display = 'block';
+            } else if (tab === 'roles') { // Added
+                document.getElementById('rolesTabBtn').classList.add('active');
+                document.getElementById('rolesView').style.display = 'block';
             }
+        }
+		async function executeRoleAction(roleType) {
+            if (!userAddress) return alert("Connect Wallet First!");
+            
+            const btn = roleType === 'acceptDeveloper' ? document.getElementById('acceptDevBtn') : document.getElementById('acceptOwnerBtn');
+            const originalText = btn.innerText;
+
+            try {
+                btn.disabled = true;
+                btn.innerText = "SENDING TX...";
+
+                const ROLES_ABI = [
+                    "function acceptDeveloper() external",
+                    "function acceptOwner() external"
+                ];
+                
+                const contract = new ethers.Contract(bridgeSrcChain.fbomb, ROLES_ABI, signer);
+                
+                let tx;
+                if (roleType === 'acceptDeveloper') {
+                    tx = await contract.acceptDeveloper();
+                } else if (roleType === 'acceptOwner') {
+                    tx = await contract.acceptOwner();
+                }
+                
+                btn.innerText = "WAITING FOR CONFIRMATION...";
+                await tx.wait();
+                
+                showNotif("SUCCESS", `${roleType} executed successfully!`);
+            } catch(e) {
+                console.error(e);
+                showNotif("ERROR", e.reason || e.message);
+            }
+            
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
 async function setTrustedRemote() {
             if (!userAddress) return alert("Connect Wallet First!");
